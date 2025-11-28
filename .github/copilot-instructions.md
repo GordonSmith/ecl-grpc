@@ -27,3 +27,8 @@
 - Export/install rules already exist for `ecl_protobuf`; ensure any new targets also call `install(TARGETS ...)` and add themselves to the `ecl-protobuf-targets` export if they are part of the public API.
 - When adding client binaries (examples/tests), place them under `examples/` or `tests/` so the existing `add_subdirectory` logic can discover them conditionally based on the build options.
 - Favor modern CMake idioms (`target_link_libraries` with PUBLIC/PRIVATE scopes, generator expressions for options). Avoid editing `vcpkg_installed/` manually—use manifests or overlays instead.
+
+## ECL Embed C++ Integration
+- The ECL job under `src/main.ecl` wraps the gRPC client with `EMBED(C++)`; follow HPCC's Embed C++ structure guide (https://hpccsystems.com/wp-content/uploads/_documents/ECLR_EN_US/EMBED_Structure.html) and special-structures reference (https://hpccsystems.com/wp-content/uploads/_documents/ECLR_EN_US/Special_Structures.html) whenever adjusting signatures, return types, or helper functions.
+- Keep the embedded payload in sync with `src/main.manifest`; every header/source referenced by the `EMBED` block (including generated protobuf files) must be listed so `eclcc` can package them for Thor/ROXIE.
+- When introducing new C++ entry points for ECL, expose them via small adapter functions (e.g., `test()`, `cppVersion()`) inside the `EMBED` block and document their usage in `README.md` to help HPCC operators understand the surface area.
