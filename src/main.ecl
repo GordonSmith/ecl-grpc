@@ -1,6 +1,14 @@
 #OPTION('compileOptions', ' -std=c++17 -Wno-c++11-compat');
 // #OPTION('compileOptions', '-Werror=c++17-compat');
 
+UNSIGNED4 test() := EMBED(C++)
+    #include "grpc-client.hpp"
+#body
+    return test() + test2();
+ENDC++;
+
+test();
+
 STRING cppVersion() := EMBED(C++)
 
 #body
@@ -25,11 +33,3 @@ STRING cppVersion() := EMBED(C++)
 ENDEMBED;
 
 cppVersion();
-
-UNSIGNED4 test() := EMBED(C++)
-    #include "demo.hpp"
-#body
-    return test();
-ENDC++;
-
-test();

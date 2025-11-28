@@ -17,6 +17,7 @@ project(ecl-protobuf VERSION 0.1.0 LANGUAGES CXX)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(protobuf CONFIG REQUIRED)
+find_package(absl CONFIG REQUIRED)
 
 option(ECL_PROTOBUF_ENABLE_WARNINGS "Enable recommended compiler warnings" ON)
 option(ECL_PROTOBUF_WARNINGS_AS_ERRORS "Treat warnings as errors" OFF)
@@ -27,7 +28,8 @@ set(ECL_PROTOBUF_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
 set(ECL_PROTOBUF_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include")
 set(ECL_PROTOBUF_GENERATED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/generated")
 set(ECL_PROTOBUF_PROTO_DIR "${CMAKE_CURRENT_SOURCE_DIR}/proto")
-set(ECL_PROTOBUF_PROTO_FILE "${ECL_PROTOBUF_PROTO_DIR}/addressbook.proto")
+set(ECL_PROTOBUF_ROUTE_PROTO "${ECL_PROTOBUF_PROTO_DIR}/route_guide.proto")
+set(ECL_PROTOBUF_ADDRESSBOOK_PROTO "${ECL_PROTOBUF_PROTO_DIR}/addressbook.proto")
 set(ECL_PROTOBUF_APP_SOURCE "${ECL_PROTOBUF_SRC_DIR}/main.cpp")
 
 set(ECL_PROTOBUF_SOURCES)
@@ -44,7 +46,12 @@ if(EXISTS "${ECL_PROTOBUF_APP_SOURCE}")
     list(REMOVE_ITEM ECL_PROTOBUF_SOURCES "${ECL_PROTOBUF_APP_SOURCE}")
 endif()
 
-if(EXISTS "${ECL_PROTOBUF_PROTO_FILE}")
+set(_ecl_protobuf_need_protoc OFF)
+if(EXISTS "${ECL_PROTOBUF_ROUTE_PROTO}" OR EXISTS "${ECL_PROTOBUF_ADDRESSBOOK_PROTO}")
+    set(_ecl_protobuf_need_protoc ON)
+endif()
+
+if(_ecl_protobuf_need_protoc)
     set(ECL_PROTOBUF_PROTOC_EXECUTABLE "")
     if(DEFINED VCPKG_INSTALLED_DIR AND DEFINED VCPKG_TARGET_TRIPLET)
         set(_vcpkg_protoc "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/tools/protobuf/protoc")
@@ -64,24 +71,63 @@ if(EXISTS "${ECL_PROTOBUF_PROTO_FILE}")
     if(NOT ECL_PROTOBUF_PROTOC_EXECUTABLE)
         message(FATAL_ERROR "Could not locate protoc. Run ./vcpkg/vcpkg install to provision protobuf.")
     endif()
+endif()
 
-    set(ECL_PROTOBUF_GENERATED_CC "${ECL_PROTOBUF_GENERATED_DIR}/addressbook.pb.cc")
-    set(ECL_PROTOBUF_GENERATED_H "${ECL_PROTOBUF_GENERATED_DIR}/addressbook.pb.h")
-    list(REMOVE_ITEM ECL_PROTOBUF_SOURCES "${ECL_PROTOBUF_GENERATED_CC}")
+set(_ecl_protobuf_add_generated_include OFF)
+
+if(EXISTS "${ECL_PROTOBUF_ROUTE_PROTO}")
+    find_package(gRPC CONFIG REQUIRED)
+
+    set(ECL_PROTOBUF_GENERATED_ROUTE_PB_CC   "${ECL_PROTOBUF_GENERATED_DIR}/route_guide.pb.cc")
+    set(ECL_PROTOBUF_GENERATED_ROUTE_PB_H    "${ECL_PROTOBUF_GENERATED_DIR}/route_guide.pb.h")
+    set(ECL_PROTOBUF_GENERATED_ROUTE_GRPC_CC "${ECL_PROTOBUF_GENERATED_DIR}/route_guide.grpc.pb.cc")
+    set(ECL_PROTOBUF_GENERATED_ROUTE_GRPC_H  "${ECL_PROTOBUF_GENERATED_DIR}/route_guide.grpc.pb.h")
 
     add_custom_command(
-        OUTPUT "${ECL_PROTOBUF_GENERATED_CC}" "${ECL_PROTOBUF_GENERATED_H}"
+        OUTPUT
+            "${ECL_PROTOBUF_GENERATED_ROUTE_PB_CC}"
+            "${ECL_PROTOBUF_GENERATED_ROUTE_PB_H}"
+            "${ECL_PROTOBUF_GENERATED_ROUTE_GRPC_CC}"
+            "${ECL_PROTOBUF_GENERATED_ROUTE_GRPC_H}"
         COMMAND "${CMAKE_COMMAND}" -E make_directory "${ECL_PROTOBUF_GENERATED_DIR}"
         COMMAND "${ECL_PROTOBUF_PROTOC_EXECUTABLE}"
-                --proto_path "${ECL_PROTOBUF_PROTO_DIR}"
-                --cpp_out "${ECL_PROTOBUF_GENERATED_DIR}"
-                "${ECL_PROTOBUF_PROTO_FILE}"
-        DEPENDS "${ECL_PROTOBUF_PROTO_FILE}"
-        COMMENT "Generating C++ sources from ${ECL_PROTOBUF_PROTO_FILE}"
+            --proto_path "${ECL_PROTOBUF_PROTO_DIR}"
+            --cpp_out "${ECL_PROTOBUF_GENERATED_DIR}"
+            --grpc_out "${ECL_PROTOBUF_GENERATED_DIR}"
+            --plugin=protoc-gen-grpc=$<TARGET_FILE:gRPC::grpc_cpp_plugin>
+            "${ECL_PROTOBUF_ROUTE_PROTO}"
+        DEPENDS "${ECL_PROTOBUF_ROUTE_PROTO}"
+        COMMENT "Generating C++ and gRPC sources from ${ECL_PROTOBUF_ROUTE_PROTO}"
         VERBATIM
     )
 
-    list(APPEND ECL_PROTOBUF_SOURCES "${ECL_PROTOBUF_GENERATED_CC}")
+    list(APPEND ECL_PROTOBUF_SOURCES
+        "${ECL_PROTOBUF_GENERATED_ROUTE_PB_CC}"
+        "${ECL_PROTOBUF_GENERATED_ROUTE_GRPC_CC}"
+    )
+    set(_ecl_protobuf_add_generated_include ON)
+endif()
+
+if(EXISTS "${ECL_PROTOBUF_ADDRESSBOOK_PROTO}")
+    set(ECL_PROTOBUF_GENERATED_ADDRESSBOOK_PB_CC "${ECL_PROTOBUF_GENERATED_DIR}/addressbook.pb.cc")
+    set(ECL_PROTOBUF_GENERATED_ADDRESSBOOK_PB_H  "${ECL_PROTOBUF_GENERATED_DIR}/addressbook.pb.h")
+
+    add_custom_command(
+        OUTPUT
+            "${ECL_PROTOBUF_GENERATED_ADDRESSBOOK_PB_CC}"
+            "${ECL_PROTOBUF_GENERATED_ADDRESSBOOK_PB_H}"
+        COMMAND "${CMAKE_COMMAND}" -E make_directory "${ECL_PROTOBUF_GENERATED_DIR}"
+        COMMAND "${ECL_PROTOBUF_PROTOC_EXECUTABLE}"
+            --proto_path "${ECL_PROTOBUF_PROTO_DIR}"
+            --cpp_out "${ECL_PROTOBUF_GENERATED_DIR}"
+            "${ECL_PROTOBUF_ADDRESSBOOK_PROTO}"
+        DEPENDS "${ECL_PROTOBUF_ADDRESSBOOK_PROTO}"
+        COMMENT "Generating C++ sources from ${ECL_PROTOBUF_ADDRESSBOOK_PROTO}"
+        VERBATIM
+    )
+
+    list(APPEND ECL_PROTOBUF_SOURCES "${ECL_PROTOBUF_GENERATED_ADDRESSBOOK_PB_CC}")
+    set(_ecl_protobuf_add_generated_include ON)
 endif()
 
 if(ECL_PROTOBUF_SOURCES)
@@ -94,7 +140,7 @@ endif()
 add_library(ecl::protobuf ALIAS ecl_protobuf)
 
 if(ECL_PROTOBUF_SOURCES)
-    target_link_libraries(ecl_protobuf PUBLIC protobuf::libprotobuf)
+    target_link_libraries(ecl_protobuf PUBLIC protobuf::libprotobuf gRPC::grpc++ absl::flags_parse)
 else()
     target_link_libraries(ecl_protobuf INTERFACE protobuf::libprotobuf)
 endif()
@@ -105,7 +151,7 @@ set(_ecl_protobuf_public_includes)
 if(EXISTS "${ECL_PROTOBUF_INCLUDE_DIR}")
     list(APPEND _ecl_protobuf_public_includes "$<BUILD_INTERFACE:${ECL_PROTOBUF_INCLUDE_DIR}>")
 endif()
-if(ECL_PROTOBUF_GENERATED_CC)
+if(_ecl_protobuf_add_generated_include)
     list(APPEND _ecl_protobuf_public_includes "$<BUILD_INTERFACE:${ECL_PROTOBUF_GENERATED_DIR}>")
 endif()
 if(_ecl_protobuf_public_includes)
@@ -116,7 +162,7 @@ endif()
 if(EXISTS "${ECL_PROTOBUF_APP_SOURCE}")
     add_executable(ecl_protobuf_demo "${ECL_PROTOBUF_APP_SOURCE}")
     target_link_libraries(ecl_protobuf_demo PRIVATE ecl::protobuf)
-    set_target_properties(ecl_protobuf_demo PROPERTIES OUTPUT_NAME addressbook_demo)
+    set_target_properties(ecl_protobuf_demo PROPERTIES OUTPUT_NAME ecl-grpc)
 endif()
 
 if(NOT BUILD_SHARED_LIBS)

@@ -1,6 +1,12 @@
 <Manifest>
     <Resource filename="generated/addressbook.pb.h" type="hpp" />
     <Resource filename="generated/addressbook.pb.cc" type="cpp" />
+    <Resource filename="generated/route_guide.pb.h" type="hpp" />
+    <Resource filename="generated/route_guide.pb.cc" type="cpp" />
+    <Resource filename="generated/route_guide.grpc.pb.h" type="hpp" />
+    <Resource filename="generated/route_guide.grpc.pb.cc" type="cpp" />
     <Resource filename="grpc-client.hpp" type="hpp" />
     <Resource filename="grpc-client.cpp" type="cpp" />
+    <Resource filename="helper.h" type="hpp" />
+    <Resource filename="helper.cc" type="cpp" />
 </Manifest>

@@ -20,7 +20,7 @@
 
 ## Proto Compilation
 - `find_package(protobuf CONFIG REQUIRED)` resolves vcpkg targets (`protobuf::libprotobuf`, `protobuf::libprotoc`). Use those imported targets when linking executables/tests instead of raw paths.
-- `proto/addressbook.proto` is compiled via a custom command that prefers `${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/tools/protobuf/protoc`, then `${repo}/vcpkg_installed/x64-linux/...`, then any system `protoc`. If you add new `.proto` files, extend this section rather than introducing a parallel invocation so all generated files share the same protoc binary and output dir.
+- `proto/route_guide.proto` is compiled via a custom command that prefers `${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/tools/protobuf/protoc`, then `${repo}/vcpkg_installed/x64-linux/...`, then any system `protoc`. If you add new `.proto` files, extend this section rather than introducing a parallel invocation so all generated files share the same protoc binary and output dir.
 - Keep proto search paths explicit: the generator currently points `--proto_path` to `proto/`. If you add nested directories (e.g., `proto2/`), either add extra `--proto_path` entries or relocate files under `proto/` for consistency.
 
 ## Coding Conventions & Integration Points
