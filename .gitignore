@@ -1,0 +1,4 @@
+build/
+examples/
+proto2/
+vcpkg_installed/

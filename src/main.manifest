@@ -1,0 +1,6 @@
+<Manifest>
+    <Resource filename="generated/addressbook.pb.h" type="hpp" />
+    <Resource filename="generated/addressbook.pb.cc" type="cpp" />
+    <Resource filename="grpc-client.hpp" type="hpp" />
+    <Resource filename="grpc-client.cpp" type="cpp" />
+</Manifest>
